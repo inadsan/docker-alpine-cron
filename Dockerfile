@@ -10,7 +10,7 @@ RUN mkdir -p /var/log/cron && mkdir -m 0644 -p /var/spool/cron/crontabs && touch
 RUN apk add --no-cache tzdata && cp /usr/share/zoneinfo/Europe/Madrid /etc/localtime && apk del tzdata
 
 COPY /scripts/ /
-RUN dos2unix /mysql/* && dos2unix /mongo/* && dos2unix /*.sh && chmod a+x /*.sh && chmod a+x /mysql/*.sh && chmod a+x /mongo/*.sh
+RUN dos2unix /mysql/* && dos2unix /mongo/* && dos2unix /aws/* && dos2unix /*.sh && chmod a+x /*.sh && chmod a+x /mysql/*.sh && chmod a+x /mongo/*.sh && chmod a+x /aws/*.sh
 
 ENTRYPOINT ["/docker-entry.sh"]
 CMD ["/docker-cmd.sh"]
