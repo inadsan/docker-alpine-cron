@@ -143,6 +143,7 @@ function backup_target() {
       for file in ${TMPDIR}/*
       do
         aws ${AWS_CLI_OPTS} ${AWS_ENDPOINT_OPT} s3 cp $file "${DB_DUMP_TARGET}/$(basename $file)"
+		rm $file
       done
       ;;
     "smb")
