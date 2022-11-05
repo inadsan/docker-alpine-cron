@@ -1,7 +1,6 @@
-FROM alpine:3
-MAINTAINER d@d.ru
-MAINTAINER daniel.sanchez@aranova.es			   
+FROM alpine:3.16.2
 
+LABEL maintainer="daniel.sanchez@aranova.es"
 LABEL org.opencontainers.image.source https://github.com/ARANOVA/docker-alpine-cron
 
 RUN apk add --no-cache dcron curl ca-certificates mysql-client mariadb-connector-c mongodb-tools redis bash py-pip dos2unix && pip install awscli
