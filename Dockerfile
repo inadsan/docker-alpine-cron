@@ -1,7 +1,7 @@
 FROM alpine:3.16.2
 
 LABEL maintainer="daniel.sanchez@aranova.es"
-LABEL org.opencontainers.image.source https://github.com/ARANOVA/docker-alpine-cron
+LABEL org.opencontainers.image.source https://github.com/inadsan/docker-alpine-cron
 
 RUN apk add --no-cache dcron curl ca-certificates mysql-client mariadb-connector-c mongodb-tools redis bash py-pip dos2unix && pip install awscli
 RUN wget https://dl.influxdata.com/influxdb/releases/influxdb-1.8.10-static_linux_amd64.tar.gz && \
