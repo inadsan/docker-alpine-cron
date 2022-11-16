@@ -15,14 +15,11 @@ file_env "DB_PASS"
 file_env "DB_NAMES"
 file_env "DB_NAMES_EXCLUDE"
 
-file_env "DB_DUMP_FREQ" "1440"
-file_env "DB_DUMP_BEGIN" "+0"
 file_env "DB_DUMP_DEBUG"
 file_env "DB_DUMP_TARGET" "/backup"
 file_env "DB_DUMP_BY_SCHEMA"
 file_env "DB_DUMP_KEEP_PERMISSIONS" "true"
-
-file_env "DB_RESTORE_TARGET"
+file_env "DB_DUMP_OLDDAYS_REMOVE"
 
 file_env "AWS_ENDPOINT_URL"
 file_env "AWS_ENDPOINT_OPT"
@@ -37,7 +34,7 @@ file_env "SMB_PASS"
 
 file_env "TMP_PATH" "/tmp"
 
-file_env "COMPRESSION" "gzip"
+file_env "COMPRESSION" "bzip2"
 
 if [[ -n "$DB_DUMP_DEBUG" ]]; then
   set -x
@@ -72,16 +69,13 @@ fi
 #
 # set compress and decompress commands
 COMPRESS=
-UNCOMPRESS=
 case $COMPRESSION in
   gzip)
     COMPRESS="gzip"
-    UNCOMPRESS="gunzip"
     EXTENSION="tgz"
     ;;
   bzip2)
     COMPRESS="bzip2"
-    UNCOMPRESS="bzip2 -d"
     EXTENSION="tbz2"
     ;;
   *)
@@ -92,140 +86,28 @@ esac
 
 # temporary dump dir
 TMPDIR="${TMP_PATH}/backups"
-TMPRESTORE="${TMP_PATH}/restorefile"
+SOURCE_PREFIX="db_backup"
 
 # this is global, so has to be set outside
 declare -A uri
 
+echo Starting at $(date)
 
+# enter the loop
+exit_code=0
+# make sure the directory exists
+mkdir -p $TMPDIR
+do_dump
+[ $? -ne 0 ] && exit_code=1
+# we can have multiple targets
+for target in ${DB_DUMP_TARGET}; do
+  backup_target ${target}
+  [ $? -ne 0 ] && exit_code=1
+  delete_target ${target}
+  [ $? -ne 0 ] && exit_code=1
+done
 
-if [[ -n "$DB_RESTORE_TARGET" ]]; then
-  # Execute additional scripts for pre backup restore processing. For example,
-  # uncompress a tarball that contains the tarballs for the sql dump and a
-  # wordpress installation.
-  if [ -d /scripts.d/pre-restore/ ]; then
-    for i in $(ls /scripts.d/pre-restore/*.sh); do
-      if [ -x $i ]; then
-        DB_RESTORE_TARGET=${DB_RESTORE_TARGET} DB_DUMP_DEBUG=${DB_DUMP_DEBUG} $i
-      fi
-    done
-  fi
-  uri_parser ${DB_RESTORE_TARGET}
-  if [[ "${uri[schema]}" == "file" ]]; then
-    cp $DB_RESTORE_TARGET $TMPRESTORE 2>/dev/null
-  elif [[ "${uri[schema]}" == "s3" ]]; then
-    [[ -n "$AWS_ENDPOINT_URL" ]] && AWS_ENDPOINT_OPT="--endpoint-url $AWS_ENDPOINT_URL"
-      aws ${AWS_CLI_OPTS} ${AWS_ENDPOINT_OPT} s3 cp ${AWS_CLI_S3_CP_OPTS} "${DB_RESTORE_TARGET}" $TMPRESTORE
-  elif [[ "${uri[schema]}" == "smb" ]]; then
-    if [[ -n "$SMB_USER" ]]; then
-      UPASSARG="-U"
-      UPASS="${SMB_USER}%${SMB_PASS}"
-    elif [[ -n "${uri[user]}" ]]; then
-      UPASSARG="-U"
-      UPASS="${uri[user]}%${uri[password]}"
-    else
-      UPASSARG=
-      UPASS=
-    fi
-    if [[ -n "${uri[userdomain]}" ]]; then
-      UDOM="-W ${uri[userdomain]}"
-    else
-      UDOM=
-    fi
-    smbclient -N "//${uri[host]}/${uri[share]}" ${UPASSARG} "${UPASS}" ${UDOM} -c "get ${uri[sharepath]} ${TMPRESTORE}"
-  fi
-  # did we get a file?
-  if [[ -f "$TMPRESTORE" ]]; then
-    workdir="${TMP_PATH}/restore.$$"
-    rm -rf $workdir
-    mkdir -p $workdir
-    $UNCOMPRESS < $TMPRESTORE | tar -C $workdir -xvf -
-    cat $workdir/* | mysql -h $DB_SERVER -P $DB_PORT $DBUSER $DBPASS
-    rm -rf $workdir
-    /bin/rm -f $TMPRESTORE
-  else
-    echo "Could not find restore file $DB_RESTORE_TARGET"
-    exit 1
-  fi
-  # Execute additional scripts for post backup restore processing. For example,
-  # uncompress a tarball that contains the files of a wordpress installation
-  if [ -d /scripts.d/post-restore/ ]; then
-    for i in $(ls /scripts.d/post-restore/*.sh); do
-      if [ -x $i ]; then
-        DB_RESTORE_TARGET=${DB_RESTORE_TARGET} DB_DUMP_DEBUG=${DB_DUMP_DEBUG} $i
-      fi
-    done
-  fi
-else
-  # wait for the next time to start a backup
-  # for debugging
-  echo Starting at $(date)
-  last_run=0
-  current_time=$(date +"%s")
-  freq_time=$(($DB_DUMP_FREQ*60))
-  # get the begin time on our date
-  # REMEMBER: we are using the basic date package in alpine
-  # could be a delay in minutes or an absolute time of day
-  if [ -n "$DB_DUMP_CRON" ]; then
-    # calculate how long until the next cron instance is met
-    waittime=$(wait_for_cron "$DB_DUMP_CRON" "$current_time" $last_run)
-  elif [[ $DB_DUMP_BEGIN =~ ^\+(.*)$ ]]; then
-    waittime=$(( ${BASH_REMATCH[1]} * 60 ))
-    target_time=$(($current_time + $waittime))
-  else
-    today=$(date +"%Y-%m-%d")
-    target_time=$(date --date="${today} ${DB_DUMP_BEGIN}" +"%s")
+# remove lingering file
+/bin/rm ${TMPDIR}/${SOURCE}
 
-    if [[ "$target_time" < "$current_time" ]]; then
-      target_time=$(($target_time + 24*60*60))
-    fi
-
-    waittime=$(($target_time - $current_time))
-  fi
-
-  # If RUN_ONCE is set, don't wait
-  if [ -z "${RUN_ONCE}" ]; then
-    sleep $waittime
-    last_run=$(date +"%s")
-  fi
-
-  # enter the loop
-  exit_code=0
-  while true; do
-    # make sure the directory exists
-    mkdir -p $TMPDIR
-    do_dump
-    [ $? -ne 0 ] && exit_code=1
-    # we can have multiple targets
-    for target in ${DB_DUMP_TARGET}; do
-      backup_target ${target}
-      [ $? -ne 0 ] && exit_code=1
-    done
-    # remove lingering file
-    /bin/rm ${TMPDIR}/${SOURCE}
-
-    # wait, unless RUN_ONCE is set
-    current_time=$(date +"%s")
-    if [ -n "${RUN_ONCE}" ]; then
-      exit $exit_code
-    elif [ -n "${DB_DUMP_CRON}" ]; then
-      waittime=$(wait_for_cron "${DB_DUMP_CRON}" "$current_time" $last_run)
-    else
-      current_time=$(date +"%s")
-      # Calculate how long the previous backup took
-      backup_time=$(($current_time - $target_time))
-      # Calculate how many times the frequency time was passed during the previous backup.
-      freq_time_count=$(($backup_time / $freq_time))
-      # Increment the count with one because we want to wait at least the frequency time once.
-      freq_time_count_to_add=$(($freq_time_count + 1))
-      # Calculate the extra time to add to the previous target time
-      extra_time=$(($freq_time_count_to_add*$freq_time))
-      # Calculate the new target time needed for the next calculation
-      target_time=$(($target_time + $extra_time))
-      # Calculate the wait time
-      waittime=$(($target_time - $current_time))
-    fi
-    sleep $waittime
-    last_run=$(date +"%s")
-  done
-fi
+exit $exit_code
