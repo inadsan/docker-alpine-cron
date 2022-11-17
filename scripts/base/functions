@@ -105,14 +105,14 @@ function backup_target() {
       #[[ -n "$AWS_ENDPOINT_URL" ]] && AWS_ENDPOINT_OPT="--endpoint-url $AWS_ENDPOINT_URL"
       #aws ${AWS_CLI_OPTS} ${AWS_ENDPOINT_OPT} s3 cp ${TMPDIR}/${SOURCE} "${DB_DUMP_TARGET}/${TARGET}"
       [[ -n "$AWS_ENDPOINT_URL" ]] && AWS_ENDPOINT_OPT="--host $AWS_ENDPOINT_URL --host-bucket $AWS_ENDPOINT_URL"
-      s3cmd ${AWS_ENDPOINT_OPT} --multipart-chunk-size-mb=250MB put ${TMPDIR}/${SOURCE} "${DB_DUMP_TARGET}/${TARGET}"
+      s3cmd ${AWS_ENDPOINT_OPT} --multipart-chunk-size-mb=250 put ${TMPDIR}/${SOURCE} "${DB_DUMP_TARGET}/${TARGET}"
       ;;
     "s3sync")
       DB_DUMP_TARGET_PARAM=$(echo -n "${DB_DUMP_TARGET/s3sync:/s3:}")
       #[[ -n "$AWS_ENDPOINT_URL" ]] && AWS_ENDPOINT_OPT="--endpoint-url $AWS_ENDPOINT_URL"
       #aws ${AWS_CLI_OPTS} ${AWS_ENDPOINT_OPT} s3 sync --delete --exclude "*.his" ${DB_DIR_TARGET}/ ${DB_DUMP_TARGET}
       [[ -n "$AWS_ENDPOINT_URL" ]] && AWS_ENDPOINT_OPT="--host $AWS_ENDPOINT_URL --host-bucket $AWS_ENDPOINT_URL"
-      s3cmd ${AWS_ENDPOINT_OPT} --multipart-chunk-size-mb=250MB sync ${DB_DIR_TARGET}/ ${DB_DUMP_TARGET_PARAM}/ --skip-existing --exclude '*.his' --delete-removed --no-check-md5
+      s3cmd ${AWS_ENDPOINT_OPT} --multipart-chunk-size-mb=250 sync ${DB_DIR_TARGET}/ ${DB_DUMP_TARGET_PARAM}/ --skip-existing --exclude '*.his' --delete-removed --no-check-md5
       ;;
     "smb")
       if [[ -n "$SMB_USER" ]]; then
