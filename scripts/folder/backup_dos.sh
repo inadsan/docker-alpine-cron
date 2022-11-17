@@ -68,7 +68,7 @@ for org in $DB_DIR_SOURCE*; do
     done
   fi
 done
-backup_target ${DB_DUMP_TARGET}
+backup_target ${DB_DUMP_TARGET_SYNC}
 if [ $? -eq 0 ] ; then
   for org in $DB_DIR_SOURCE*; do
     if [ -d "$org" ]; then
@@ -99,4 +99,4 @@ if [ $? -eq 0 ] ; then
   done
   find $BACKUPDIR -name '*-*.tar*' -size +0 -exec rm {} \; -exec touch {} \;
 fi
-backup_target ${DB_DUMP_TARGET}
+backup_target ${DB_DUMP_TARGET_SYNC}
