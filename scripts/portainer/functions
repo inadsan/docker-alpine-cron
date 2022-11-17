@@ -9,7 +9,7 @@
 #
 function do_dump() {
   # what is the name of our source and target?
-  now=$(date -u +"%Y-%m-%d_%H-%M-%S")
+  now=$(date +"%Y-%m-%d_%H-%M-%S")
   # SOURCE: file that the uploader looks for when performing the upload
   # TARGET: the remote file that is actually uploaded
 
@@ -17,7 +17,7 @@ function do_dump() {
   if [ -n "$DB_DUMP_SAFECHARS" ]; then
     now=${now//:/-}
   fi
-  SOURCE=${SOURCE_PREFIX}_${now}.$EXTENSION
+  SOURCE=${SOURCE_PREFIX}_${now}.tar.gz
   TARGET=${SOURCE}
 
   curl -i -X POST http://$DB_SERVER:9000/api/backup -H "X-API-Key: $DB_PASS" -H 'Content-Type: application/json' --data '{}' --output ${TMPDIR}/${SOURCE}

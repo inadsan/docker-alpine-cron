@@ -72,11 +72,11 @@ COMPRESS=
 case $COMPRESSION in
   gzip)
     COMPRESS="gzip"
-    EXTENSION="tgz"
+    EXTENSION=".gz"
     ;;
   bzip2)
     COMPRESS="bzip2"
-    EXTENSION="tbz2"
+    EXTENSION=".bz2"
     ;;
   *)
     echo "Unknown compression requested: $COMPRESSION" >&2

@@ -30,8 +30,6 @@ file_env "SMB_PASS"
 
 file_env "TMP_PATH" "/tmp"
 
-file_env "COMPRESSION" "bzip2"
-
 if [[ -n "$DB_DUMP_DEBUG" ]]; then
   set -x
 fi
@@ -53,23 +51,6 @@ if [ -z "${DB_PORT}" ]; then
   echo "DB_PORT not provided, defaulting to 9000"
   DB_PORT=9000
 fi
-
-#
-# set compress and decompress commands
-COMPRESS=
-case $COMPRESSION in
-  gzip)
-    COMPRESS="gzip"
-    EXTENSION="tgz"
-    ;;
-  bzip2)
-    COMPRESS="bzip2"
-    EXTENSION="tbz2"
-    ;;
-  *)
-    echo "Unknown compression requested: $COMPRESSION" >&2
-    exit 1
-esac
 
 # temporary dump dir
 TMPDIR="${TMP_PATH}/backups"
