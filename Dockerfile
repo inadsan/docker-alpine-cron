@@ -1,7 +1,7 @@
 FROM alpine:3.20.2
 
 LABEL org.opencontainers.image.authors="inadsan@gmail.com"
-LABEL org.opencontainers.image.source https://github.com/inadsan/docker-alpine-cron
+LABEL org.opencontainers.image.source=https://github.com/inadsan/docker-alpine-cron
 
 RUN apk add --no-cache dcron curl ca-certificates mysql-client mariadb-connector-c bash dos2unix coreutils tar s3cmd
 
