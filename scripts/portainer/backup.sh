@@ -14,6 +14,7 @@ file_env "DB_PASS"
 
 file_env "DB_DUMP_DEBUG"
 file_env "DB_DUMP_TARGET" "/backup"
+file_env "DB_DUMP_BY_SCHEMA"
 file_env "DB_DUMP_KEEP_PERMISSIONS" "true"
 file_env "DB_DUMP_OLDDAYS_REMOVE"
 
@@ -51,6 +52,8 @@ if [ -z "${DB_PORT}" ]; then
   echo "DB_PORT not provided, defaulting to 9000"
   DB_PORT=9000
 fi
+
+EXTENSION="gz"
 
 # temporary dump dir
 TMPDIR="${TMP_PATH}/backups"
